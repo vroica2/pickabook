@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PickABook</title>
+<meta name="description" content="La libreria di Veronica Paolucci: i libri votati e quelli in lista.">
+<style>
+ :root{
+   --oxford:#011936; --carta:#f8f8ff; --bianco:#fff; --riga:#e2e2ee;
+   --tenue:#5d6579; --viola:#8447ff; --rosa:#ff88c8; --rosa-scuro:#c2367f;
+   --giallo:#ffc900;
+ }
+ *{box-sizing:border-box}
+ html{-webkit-text-size-adjust:100%}
+ body{margin:0;background:var(--carta);color:var(--oxford);
+   font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+ a{color:var(--viola)}
+
+ .spettro{display:flex;height:5px}
+ .spettro span{flex:1}
+
+ header{position:sticky;top:0;z-index:10;background:var(--carta);
+   border-bottom:1px solid var(--riga);padding:1.1rem 1.6rem .9rem}
+ .testata{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+ h1{font:700 1.5rem/1.1 Georgia,serif;margin:0;letter-spacing:-.01em}
+ .punto{color:var(--rosa)}
+ .vai-consiglio{margin-left:auto;font:600 .82rem/1 inherit;padding:.55rem .95rem;
+   border-radius:999px;background:var(--oxford);color:#fff;text-decoration:none;white-space:nowrap}
+ .vai-consiglio:hover{background:var(--viola)}
+
+ .schede{display:flex;gap:.35rem;margin-top:.9rem;flex-wrap:wrap}
+ .schede button{font:600 .84rem/1 inherit;padding:.5rem .9rem;border-radius:999px;
+   border:1px solid var(--riga);background:var(--bianco);color:var(--tenue);cursor:pointer}
+ .schede button[aria-selected=true]{background:var(--viola);border-color:var(--viola);color:#fff}
+ .schede .n{font-weight:400;opacity:.8;margin-left:.25rem}
+
+ .barra{display:flex;gap:.5rem;margin-top:.7rem;flex-wrap:wrap;align-items:center}
+ input[type=search],select{font:inherit;padding:.45rem .7rem;border:1px solid var(--riga);
+   border-radius:6px;background:var(--bianco);color:var(--oxford)}
+ input[type=search]{min-width:240px;flex:0 1 320px}
+ input:focus,select:focus,textarea:focus,button:focus-visible,.libro:focus-visible{outline:2px solid var(--viola);outline-offset:1px}
+ .conta{margin-left:auto;color:var(--tenue);font-size:.84rem}
+
+ main{padding:1.3rem 1.6rem 2rem}
+ .griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;align-items:start}
+ .griglia>*{min-width:0}
+ .vuoto{color:var(--tenue);text-align:center;padding:3rem 1rem;max-width:34rem;margin:0 auto}
+ .vuoto strong{display:block;font:700 1.15rem/1.3 Georgia,serif;color:var(--oxford);margin-bottom:.4rem}
+
+ .libro{display:grid;grid-template-columns:86px 1fr;gap:.9rem;background:var(--bianco);
+   border:1px solid var(--riga);border-radius:9px;padding:.85rem;align-items:start;
+   cursor:pointer;transition:border-color .15s,box-shadow .15s}
+ .libro:hover{border-color:#c9b5ff;box-shadow:0 2px 10px rgba(132,71,255,.08)}
+ .libro.letto{border-color:#f6cbe2}
+ .copertina{width:86px;aspect-ratio:2/3;object-fit:cover;border-radius:3px;display:block;
+   box-shadow:0 1px 4px rgba(1,25,54,.2);background:#ecebf4}
+ .senza{width:86px;aspect-ratio:2/3;border-radius:3px;display:flex;align-items:center;
+   justify-content:center;text-align:center;padding:.3rem;font:italic .7rem/1.2 Georgia,serif;
+   color:var(--tenue);background:repeating-linear-gradient(45deg,#f1f0f8,#f1f0f8 5px,#e8e7f2 5px,#e8e7f2 10px)}
+ .pila{position:relative;width:86px}
+ .pila.multipla::before,.pila.multipla::after{content:"";position:absolute;inset:0;border-radius:3px;
+   background:#e6e0fb;border:1px solid #d6cbfa}
+ .pila.multipla::before{transform:translate(7px,-5px)}
+ .pila.multipla::after{transform:translate(3.5px,-2.5px);background:#efeafd}
+ .pila .copertina,.pila .senza{position:relative;z-index:1}
+ .testo{min-width:0}
+ .etichetta{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--viola)}
+ .etichetta .vol{color:var(--tenue);font-weight:400;margin-left:.3rem}
+ h3{font:700 1rem/1.22 Georgia,serif;margin:.2rem 0 .12rem}
+ .aut{color:var(--tenue);font-size:.86rem}
+ .genere{display:inline-block;margin-top:.45rem;font-size:.7rem;color:var(--tenue);
+   background:#f0f0f7;padding:.1rem .5rem;border-radius:999px}
+ .altri{margin-top:.45rem;font-size:.76rem;color:var(--viola);font-weight:600}
+ .voto{margin-top:.5rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+ .stelle{font-size:1.05rem;letter-spacing:.05em;line-height:1;color:#e4e3ee}
+ .stelle .piena{color:var(--rosa)}
+ .data{font-size:.78rem;color:var(--tenue)}
+
+ dialog{border:none;border-radius:12px;padding:0;width:min(720px,calc(100vw - 32px));
+   max-height:calc(100vh - 48px);color:var(--oxford);box-shadow:0 20px 60px rgba(1,25,54,.3)}
+ dialog::backdrop{background:rgba(1,25,54,.45)}
+ .scheda{position:relative;padding:1.5rem}
+ .chiudi{position:absolute;top:.7rem;right:.7rem;width:2.2rem;height:2.2rem;border-radius:50%;
+   border:1px solid var(--riga);background:var(--bianco);font-size:1.2rem;line-height:1;cursor:pointer;color:var(--tenue)}
+ .scheda-testa{display:grid;grid-template-columns:140px 1fr;gap:1.3rem;align-items:start}
+ .scheda-testa .copertina,.scheda-testa .senza{width:140px}
+ .scheda h2{font:700 1.4rem/1.2 Georgia,serif;margin:.25rem 2rem .2rem 0}
+ .scheda .aut{font-size:.95rem}
+ .dettagli{display:flex;flex-wrap:wrap;gap:.3rem .9rem;margin-top:.7rem;font-size:.8rem;color:var(--tenue)}
+ .mio-voto{margin-top:.8rem;padding:.55rem .75rem;border-radius:8px;background:#fff3fa;
+   display:inline-flex;gap:.6rem;align-items:center;font-size:.82rem}
+ .mio-voto.in-lista{background:#f3eeff;color:var(--viola);font-weight:600}
+ .trama{margin-top:1.2rem;font-size:.93rem;line-height:1.6;white-space:pre-line}
+ .trama.attesa{color:var(--tenue);font-style:italic}
+ .collegati{margin-top:1.4rem;border-top:1px solid var(--riga);padding-top:1rem}
+ .collegati h4{margin:0 0 .7rem;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--viola)}
+ .volumi{display:flex;gap:.7rem;overflow-x:auto;padding:.3rem .2rem .4rem;align-items:flex-start}
+ .volume{flex:0 0 72px;text-align:center;cursor:pointer;background:none;border:none;padding:0;font:inherit;color:inherit}
+ .volume .copertina,.volume .senza{width:72px;font-size:.6rem}
+ .volume.letto .copertina{outline:2px solid var(--rosa);outline-offset:2px}
+ .volume.attuale .copertina,.volume.attuale .senza{outline:3px solid var(--viola);outline-offset:2px}
+ .volume .n{display:block;font-size:.68rem;color:var(--tenue);margin-top:.4rem}
+ .volume .stelle{font-size:.66rem;display:block;margin-top:.1rem}
+ .volume .titolo-vol{display:block;font-size:.68rem;line-height:1.2;margin-top:.15rem;
+   overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+ #consiglia{background:var(--bianco);border-top:1px solid var(--riga);padding:2.2rem 1.6rem 2.6rem}
+ .cassettina{max-width:640px;margin:0 auto}
+ .cassettina h2{font:700 1.35rem/1.2 Georgia,serif;margin:0}
+ .cassettina p.intro{color:var(--tenue);margin:.4rem 0 1.2rem}
+ .campi{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+ .campi label{display:block;font-size:.8rem;font-weight:600;margin-bottom:.25rem}
+ .campi .largo{grid-column:1/-1}
+ .campi input,.campi textarea{width:100%;font:inherit;padding:.6rem .7rem;border:1px solid var(--riga);
+   border-radius:6px;background:var(--carta);color:var(--oxford)}
+ .campi textarea{min-height:110px;resize:vertical}
+ .facoltativo{font-weight:400;color:var(--tenue)}
+ .trappola{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+ .invia{margin-top:1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+ .invia button{font:600 .9rem/1 inherit;padding:.75rem 1.3rem;border:none;border-radius:999px;
+   background:var(--viola);color:#fff;cursor:pointer}
+ .invia button:disabled{opacity:.55;cursor:default}
+ #esito{font-size:.88rem}
+ #esito.ok{color:#1d7a46} #esito.no{color:var(--rosa-scuro)}
+ .nota-privacy{margin-top:1.2rem;font-size:.78rem;color:var(--tenue);line-height:1.5}
+
+ footer{padding:1.2rem 1.6rem 2rem;color:var(--tenue);font-size:.8rem;text-align:center}
+ footer .pallino{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--giallo);
+   margin-right:.4rem;vertical-align:middle}
+
+ @media (max-width:560px){
+   header,main,#consiglia,footer{padding-left:16px;padding-right:16px}
+   header{position:static}
+   .griglia{grid-template-columns:1fr}
+   .libro{grid-template-columns:70px 1fr}
+   .libro .copertina,.libro .senza,.libro .pila{width:70px}
+   input[type=search]{min-width:0;flex:1 1 100%}
+   .conta{margin-left:0}
+   .campi{grid-template-columns:1fr}
+   .scheda{padding:1.1rem}
+   .scheda-testa{grid-template-columns:96px 1fr;gap:.9rem}
+   .scheda-testa .copertina,.scheda-testa .senza{width:96px}
+   .scheda h2{font-size:1.15rem}
+ }
+</style>
+</head>
+<body>
+<div class="spettro" aria-hidden="true">
+  <span style="background:#011936"></span><span style="background:#8447ff"></span>
+  <span style="background:#ff88c8"></span><span style="background:#ffc900"></span>
+</div>
+
+<header>
+  <div class="testata">
+    <h1>PickABook<span class="punto">.</span></h1>
+    <a class="vai-consiglio" href="#consiglia">Consigliami un libro</a>
+  </div>
+  <div class="schede" role="tablist">
+    <button role="tab" data-vista="votati" aria-selected="false">Votati<span class="n" id="n-votati"></span></button>
+    <button role="tab" data-vista="inlista" aria-selected="false">In lista<span class="n" id="n-inlista"></span></button>
+  </div>
+  <div class="barra">
+    <input type="search" id="cerca" placeholder="Cerca titolo, autore o saga" aria-label="Cerca">
+    <select id="genere" aria-label="Genere"><option value="">Tutti i generi</option></select>
+    <span class="conta" id="conta"></span>
+  </div>
+</header>
+
+<main>
+  <div class="griglia" id="griglia"></div>
+  <div class="vuoto" id="vuoto" hidden></div>
+</main>
+
+<dialog id="finestra" aria-labelledby="scheda-titolo">
+  <div class="scheda" id="scheda"></div>
+</dialog>
+
+<section id="consiglia">
+  <div class="cassettina">
+    <h2>La cassettina dei consigli<span class="punto">.</span></h2>
+    <p class="intro">Hai un libro che secondo te dovrei leggere? Scrivimi titolo, autore e il motivo per cui me lo consigli. Se mi convince, entra nella mia lista.</p>
+    <form id="modulo" novalidate>
+      <div class="campi">
+        <div><label for="f-titolo">Titolo</label><input id="f-titolo" name="titolo" required maxlength="200"></div>
+        <div><label for="f-autore">Autore</label><input id="f-autore" name="autore" required maxlength="150"></div>
+        <div class="largo"><label for="f-perche">Perché me lo consigli</label>
+          <textarea id="f-perche" name="perche" required maxlength="2000"></textarea></div>
+        <div class="largo"><label for="f-firma">Firma <span class="facoltativo">(nome e cognome, uno pseudonimo, oppure lascia vuoto e comparirai come anonimo)</span></label>
+          <input id="f-firma" name="firma" maxlength="100"></div>
+      </div>
+      <div class="trappola" aria-hidden="true">
+        <label for="f-sito">Non compilare questo campo</label>
+        <input id="f-sito" name="sito" tabindex="-1" autocomplete="off">
+      </div>
+      <div class="invia">
+        <button type="submit" id="bottone-invia">Invia il consiglio</button>
+        <span id="esito" role="status"></span>
+      </div>
+    </form>
+    <p class="nota-privacy">Il consiglio arriva soltanto a me e viene conservato in un mio archivio privato, senza essere pubblicato. La firma è facoltativa e il modulo non raccoglie indirizzi email né altri dati. Per chiedere la cancellazione di un consiglio puoi scrivere ad <a href="mailto:avvocato@veronicapaolucci.com">avvocato@veronicapaolucci.com</a>.</p>
+  </div>
+</section>
+
+<footer id="piede"></footer>
+
+<script>
+/* Indirizzo della web app Apps Script che riceve i consigli.
+   Va incollato qui quando la web app sara' pronta. */
+const INDIRIZZO_CASSETTINA = "";
+
+const GENERI = {CRE:"Crescita personale",SAG:"Saggistica",STO:"Storia",HAC:"Hacking",
+  NAR:"Narrativa",THR:"Thriller e gialli",FAN:"Fantasy",SCF:"Fantascienza",
+  ROM:"Romance",BIO:"Biografie e memoir",FUM:"Fumetti"};
+
+const stato = {libri:[], perId:new Map(), saghe:new Map(), schede:null, vista:null, q:"", g:""};
+const confronto = new Intl.Collator("it", {sensitivity:"base", numeric:true});
+
+const $ = s => document.querySelector(s);
+const esc = t => String(t ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = t => String(t ?? "").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+const letto = l => Boolean(l.letto_il);
+
+function stelle(voto){
+  if(!voto) return "";
+  let s = "";
+  for(let i=1;i<=5;i++) s += `<span class="${i<=voto?"piena":""}">★</span>`;
+  return `<span class="stelle" role="img" aria-label="${voto} stelle su 5">${s}</span>`;
+}
+function immagine(l){
+  return l.copertina
+    ? `<img class="copertina" src="${esc(l.copertina)}" alt="" loading="lazy">`
+    : `<div class="senza">${esc(l.titolo)}</div>`;
+}
+function votoTesto(l){
+  return l.voto ? stelle(l.voto) : `<span class="data">letto, senza voto</span>`;
+}
+
+function corrisponde(l){
+  if(stato.g && l.genere !== stato.g) return false;
+  if(!stato.q) return true;
+  return norm(`${l.titolo} ${l.autore} ${l.serie||""}`).includes(stato.q);
+}
+
+function preparaSaghe(){
+  stato.saghe.clear();
+  for(const l of stato.libri){
+    if(!l.serie) continue;
+    if(!stato.saghe.has(l.serie)) stato.saghe.set(l.serie, []);
+    stato.saghe.get(l.serie).push(l);
+  }
+  for(const volumi of stato.saghe.values())
+    volumi.sort((a,b) => (a.numero_serie||0)-(b.numero_serie||0) || confronto.compare(a.titolo,b.titolo));
+}
+
+/* ------------------------------------------------ schede nella griglia */
+
+function etichettaSaga(l){
+  if(!l.serie) return "";
+  const totale = stato.saghe.get(l.serie).length;
+  return `<div class="etichetta">${esc(l.serie)}${l.numero_serie?`<span class="vol">vol. ${l.numero_serie} di ${totale}</span>`:""}</div>`;
+}
+
+function schedaVotato(l){
+  return `<article class="libro letto" tabindex="0" role="button" data-id="${esc(l.id)}">
+    ${immagine(l)}
+    <div class="testo">${etichettaSaga(l)}<h3>${esc(l.titolo)}</h3><div class="aut">${esc(l.autore)}</div>
+      <div class="voto">${votoTesto(l)}</div></div>
+  </article>`;
+}
+
+function schedaInLista(l, altri){
+  const pila = altri > 0;
+  const nota = pila ? `<div class="altri">e ${altri === 1 ? "un altro volume" : `altri ${altri} volumi`} della saga in lista</div>` : "";
+  return `<article class="libro" tabindex="0" role="button" data-id="${esc(l.id)}">
+    <div class="pila${pila?" multipla":""}">${immagine(l)}</div>
+    <div class="testo">${etichettaSaga(l)}<h3>${esc(l.titolo)}</h3><div class="aut">${esc(l.autore)}</div>
+      <span class="genere">${esc(GENERI[l.genere]||"Altro")}</span>${nota}</div>
+  </article>`;
+}
+
+/* ------------------------------------------------ viste */
+
+function vistaVotati(){
+  const elenco = stato.libri.filter(l => letto(l) && corrisponde(l))
+    .sort((a,b) => b.letto_il.localeCompare(a.letto_il));
+  return {html: elenco.map(schedaVotato).join(""), quanti: elenco.length,
+    vuoto: stato.libri.some(letto)
+      ? "<strong>Nessun libro votato corrisponde alla ricerca.</strong>"
+      : "<strong>Qui compariranno i libri che finisco.</strong>Ogni volta che ne chiudo uno lo segno su PickABook con il voto, e la pagina si aggiorna da sola."};
+}
+
+function vistaInLista(){
+  const voci = [];
+  let quanti = 0;
+  for(const l of stato.libri){
+    if(l.serie || letto(l) || !corrisponde(l)) continue;
+    voci.push({chiave:l.autore, html:schedaInLista(l, 0)});
+    quanti++;
+  }
+  for(const volumi of stato.saghe.values()){
+    const rimasti = volumi.filter(v => !letto(v));
+    if(!rimasti.length || !rimasti.some(corrisponde)) continue;
+    voci.push({chiave:rimasti[0].autore, html:schedaInLista(rimasti[0], rimasti.length - 1)});
+    quanti += rimasti.length;
+  }
+  voci.sort((a,b) => confronto.compare(a.chiave, b.chiave));
+  return {html: voci.map(v => v.html).join(""), quanti,
+    vuoto: "<strong>Nessun libro in lista corrisponde alla ricerca.</strong>"};
+}
+
+function disegna(){
+  const vista = (stato.vista === "votati" ? vistaVotati : vistaInLista)();
+  $("#griglia").innerHTML = vista.html;
+  $("#vuoto").innerHTML = vista.vuoto;
+  $("#vuoto").hidden = vista.quanti > 0;
+  $("#conta").textContent = `${vista.quanti} ${vista.quanti === 1 ? "libro" : "libri"}`;
+  document.querySelectorAll(".schede button").forEach(b =>
+    b.setAttribute("aria-selected", b.dataset.vista === stato.vista ? "true" : "false"));
+}
+
+/* ------------------------------------------------ scheda del libro */
+
+async function caricaSchede(){
+  if(stato.schede) return stato.schede;
+  try{
+    const r = await fetch("dati/schede.json", {cache:"no-cache"});
+    stato.schede = r.ok ? await r.json() : {};
+  }catch(e){ stato.schede = {}; }
+  return stato.schede;
+}
+
+async function apriScheda(id){
+  const l = stato.perId.get(id);
+  if(!l) return;
+  const finestra = $("#finestra");
+  disegnaScheda(l, stato.schede ? (stato.schede[id] || {}) : null);
+  if(!finestra.open) finestra.showModal();
+  const schede = await caricaSchede();
+  if(finestra.open && $("#scheda").dataset.id === id) disegnaScheda(l, schede[id] || {});
+}
+
+function disegnaScheda(l, info){
+  const dettagli = [esc(GENERI[l.genere] || "Altro")];
+  if(info && info.editore) dettagli.push(esc(info.editore));
+  const anno = l.anno || (info && info.anno);
+  if(anno) dettagli.push(esc(anno));
+  if(info && info.pagine) dettagli.push(`${esc(info.pagine)} pagine`);
+
+  const lettura = letto(l)
+    ? `<div class="mio-voto">${votoTesto(l)}</div>`
+    : `<div class="mio-voto in-lista">In lista</div>`;
+
+  let trama;
+  if(info === null) trama = `<div class="trama attesa">Carico la scheda…</div>`;
+  else if(info.trama) trama = `<div class="trama">${esc(info.trama)}</div>`;
+  else trama = `<div class="trama attesa">La scheda di questo libro non è ancora pronta.</div>`;
+
+  let collegati = "";
+  if(l.serie){
+    const volumi = stato.saghe.get(l.serie);
+    collegati = `<div class="collegati"><h4>${esc(l.serie)} · ${volumi.length} volumi</h4><div class="volumi">${
+      volumi.map(v => `<button class="volume${letto(v)?" letto":""}${v.id===l.id?" attuale":""}" data-id="${esc(v.id)}" aria-label="${esc(v.titolo)}">
+        ${immagine(v)}<span class="n">vol. ${v.numero_serie ?? "?"}</span>
+        ${letto(v) ? stelle(v.voto) : ""}<span class="titolo-vol">${esc(v.titolo)}</span></button>`).join("")
+    }</div></div>`;
+  }
+
+  const scheda = $("#scheda");
+  scheda.dataset.id = l.id;
+  scheda.innerHTML = `
+    <button class="chiudi" aria-label="Chiudi">×</button>
+    <div class="scheda-testa">
+      ${immagine(l)}
+      <div>${etichettaSaga(l)}
+        <h2 id="scheda-titolo">${esc(l.titolo)}</h2>
+        <div class="aut">${esc(l.autore)}</div>
+        <div class="dettagli">${dettagli.map(d => `<span>${d}</span>`).join("")}</div>
+        ${lettura}
+      </div>
+    </div>
+    ${trama}
+    ${collegati}`;
+}
+
+$("#finestra").addEventListener("click", e => {
+  if(e.target.id === "finestra" || e.target.closest(".chiudi")) { $("#finestra").close(); return; }
+  const vol = e.target.closest(".volume");
+  if(vol) apriScheda(vol.dataset.id);
+});
+$("#griglia").addEventListener("click", e => {
+  const c = e.target.closest(".libro");
+  if(c) apriScheda(c.dataset.id);
+});
+$("#griglia").addEventListener("keydown", e => {
+  const c = e.target.closest(".libro");
+  if(c && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); apriScheda(c.dataset.id); }
+});
+
+/* ------------------------------------------------ avvio */
+
+function contatori(){
+  const votati = stato.libri.filter(letto).length;
+  $("#n-votati").textContent = votati;
+  $("#n-inlista").textContent = stato.libri.length - votati;
+}
+function riempiGeneri(){
+  const presenti = new Set(stato.libri.map(l => l.genere));
+  Object.entries(GENERI).filter(([k]) => presenti.has(k))
+    .sort((a,b) => confronto.compare(a[1], b[1]))
+    .forEach(([k,v]) => $("#genere").insertAdjacentHTML("beforeend", `<option value="${k}">${esc(v)}</option>`));
+}
+function piede(aggiornato){
+  if(!aggiornato) return;
+  const d = new Date(aggiornato);
+  const quando = d.toLocaleDateString("it-IT",{day:"numeric",month:"long",year:"numeric"})
+    + " alle " + d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
+  $("#piede").innerHTML = `<span class="pallino"></span>Catalogo aggiornato da PickABook il ${quando}`;
+}
+
+async function avvia(){
+  try{
+    const r = await fetch("dati/catalogo.json", {cache:"no-cache"});
+    if(!r.ok) throw new Error(r.status);
+    const dati = await r.json();
+    stato.libri = dati.libri || [];
+    piede(dati.aggiornato);
+  }catch(e){
+    $("#vuoto").hidden = false;
+    $("#vuoto").innerHTML = "<strong>Il catalogo non si è caricato.</strong>Riprova tra qualche minuto.";
+    return;
+  }
+  stato.libri.forEach(l => stato.perId.set(l.id, l));
+  preparaSaghe();
+  riempiGeneri();
+  contatori();
+  stato.vista = stato.libri.some(letto) ? "votati" : "inlista";
+  disegna();
+}
+
+document.querySelectorAll(".schede button").forEach(b =>
+  b.addEventListener("click", () => { stato.vista = b.dataset.vista; disegna(); }));
+let attesa;
+$("#cerca").addEventListener("input", e => {
+  clearTimeout(attesa);
+  attesa = setTimeout(() => { stato.q = norm(e.target.value.trim()); disegna(); }, 150);
+});
+$("#genere").addEventListener("change", e => { stato.g = e.target.value; disegna(); });
+
+/* ------------------------------------------------ cassettina */
+
+$("#modulo").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, esito = $("#esito"), bottone = $("#bottone-invia");
+  const dati = {titolo:f.titolo.value.trim(), autore:f.autore.value.trim(),
+    perche:f.perche.value.trim(), firma:f.firma.value.trim(), sito:f.sito.value};
+  esito.className = "";
+  if(!dati.titolo || !dati.autore || !dati.perche){
+    esito.className = "no"; esito.textContent = "Servono titolo, autore e il motivo del consiglio."; return;
+  }
+  if(!INDIRIZZO_CASSETTINA){
+    esito.className = "no"; esito.textContent = "La cassettina non è ancora attiva, riprova tra qualche giorno."; return;
+  }
+  bottone.disabled = true;
+  esito.textContent = "Invio in corso…";
+  try{
+    await fetch(INDIRIZZO_CASSETTINA, {method:"POST", mode:"no-cors",
+      headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(dati)});
+    esito.className = "ok"; esito.textContent = "Grazie, il consiglio è arrivato."; f.reset();
+  }catch(err){
+    esito.className = "no"; esito.textContent = "Non sono riuscita a ricevere il consiglio, riprova più tardi.";
+  }finally{
+    setTimeout(() => { bottone.disabled = false; }, 4000);
+  }
+});
+
+avvia();
+</script>
+</body>
+</html>
